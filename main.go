@@ -421,6 +421,7 @@ func hostbillRequest(call string, page int, id string) []byte {
 	if err != nil {
 		panic(err)
 	}
+	req.Close = true
 	q := url.Values{}
 	apiId, err := cfg.String("hostbill.credentials.api_id")
 	if err != nil {
@@ -442,6 +443,11 @@ func hostbillRequest(call string, page int, id string) []byte {
 	if err != nil {
 		panic(err)
 	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
@@ -456,16 +462,21 @@ func zohoRequest(json []byte, module string) []byte {
 		if err != nil {
 			panic(err)
 		}
+		req.Close = true
 		req.Header.Set("Authorization", "Zoho-oauthtoken "+code)
 		resp, err := client.Do(req)
 		if err != nil {
 			panic(err)
 		}
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				panic(err)
+			}
+		}()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			panic(err)
 		}
-
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			return body
 		} else if resp.StatusCode == 401 {
