@@ -2,6 +2,7 @@ hostbill:
   credentials:
     api_id: id
     api_key: key
+  domain: domain.com
 zoho:
   credentials:
     refresh_token: token
