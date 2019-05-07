@@ -177,7 +177,7 @@ func EncodeInvoices(zohoInvoices ZohoInvoices, cfg *config.Config) error {
 	return nil
 }
 
-//  ConvertInvoices converts invoice data from the HostBill to the Zoho format
+// ConvertInvoices converts invoice data from the HostBill to the Zoho format
 func ConvertInvoices(invoicesList InvoicesList, m map[string]string) (ZohoInvoices, error) {
 	zohoInvoices := ZohoInvoices{
 		DuplicateCheckFields: []string{"ID1"},
@@ -359,4 +359,3 @@ func CreateIdMap(body []byte, m map[string]string, clientsList ClientsList) {
 		}
 	}
 }
-

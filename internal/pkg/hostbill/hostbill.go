@@ -14,7 +14,7 @@ var client = http.Client{}
 
 // Request makes a call to the HostBill API
 func Request(call string, page int, id string, cfg *config.Config) ([]byte, error) {
-	domain, err, apiId, apiKey := setHostBillConfig(cfg)
+	domain, apiId, apiKey := setHostBillConfig(cfg)
 	req, err := http.NewRequest(http.MethodGet, "https://"+domain+"/admin/api.php", nil)
 	if err != nil {
 		return []byte(""), errors.Wrapf(err, "Failed to create HostBill request %v", domain)
@@ -46,14 +46,14 @@ func Request(call string, page int, id string, cfg *config.Config) ([]byte, erro
 }
 
 // setHostBillConfig reads the relevant HostBill configuration values necessary to make a request to the HostBill API
-func setHostBillConfig(cfg *config.Config) (string, error, string, string) {
+func setHostBillConfig(cfg *config.Config) (string, string, string) {
 	domain, err := cfg.String("hostbill.domain")
 	panicError(err)
 	apiId, err := cfg.String("hostbill.credentials.api_id")
 	panicError(err)
 	apiKey, err := cfg.String("hostbill.credentials.api_key")
 	panicError(err)
-	return domain, err, apiId, apiKey
+	return domain, apiId, apiKey
 }
 
 // PanicError throws a panic if a fatal error has occurred

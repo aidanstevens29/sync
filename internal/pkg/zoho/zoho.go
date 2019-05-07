@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"net/url"
 )
+
 // RefreshToken models a response from the Zoho OAuth API
 type RefreshToken struct {
 	AccessToken string `json:"access_token"`
 }
+
 // code is our Zoho OAuth access token
 var code string
 
