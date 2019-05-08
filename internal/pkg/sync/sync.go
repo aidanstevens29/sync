@@ -3,8 +3,6 @@ package sync
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bugsnag/bugsnag-go"
-	"github.com/olebedev/config"
 	"github.com/pkg/errors"
 	"strings"
 	"sync/internal/pkg/hostbill"
@@ -143,29 +141,13 @@ type InvoicesList struct {
 	} `json:"sorter"`
 }
 
-// PanicError throws a panic if a fatal error has occurred
-func PanicError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// ConfigureBugsnag sets up bugsnag for panic reporting
-func ConfigureBugsnag(cfg *config.Config) {
-	apiKey, err := cfg.String("bugsnag.credentials.api_key")
-	PanicError(err)
-	bugsnag.Configure(bugsnag.Configuration{
-		APIKey: apiKey,
-	})
-}
-
 // EncodeInvoices encodes invoices into the Zoho API JSON format
-func EncodeInvoices(zohoInvoices ZohoInvoices, cfg *config.Config) error {
+func EncodeInvoices(zohoInvoices ZohoInvoices) error {
 	upsertInvoices, err := json.Marshal(zohoInvoices)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to encode invoices %+v", zohoInvoices)
 	}
-	body, err := zoho.Request(upsertInvoices, "Invoices", cfg)
+	body, err := zoho.Request(upsertInvoices, "Invoices")
 	if err != nil {
 		return err
 	}
@@ -211,9 +193,9 @@ func ConvertInvoices(invoicesList InvoicesList, m map[string]string) (ZohoInvoic
 }
 
 // DecodeInvoices decodes invoice data from HostBill JSON
-func DecodeInvoices(totalPages int, cfg *config.Config) (InvoicesList, error) {
+func DecodeInvoices(totalPages int) (InvoicesList, error) {
 	invoicesList := InvoicesList{}
-	body, err := hostbill.Request("getInvoices", totalPages, "0", cfg)
+	body, err := hostbill.Request("getInvoices", totalPages, "0")
 	if err != nil {
 		return invoicesList, err
 	}
@@ -225,12 +207,12 @@ func DecodeInvoices(totalPages int, cfg *config.Config) (InvoicesList, error) {
 }
 
 // EncodeServices encodes services into the Zoho API JSON format
-func EncodeServices(zohoServices ZohoServices, cfg *config.Config) error {
+func EncodeServices(zohoServices ZohoServices) error {
 	upsertServices, err := json.Marshal(zohoServices)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to encode services %+v", zohoServices)
 	}
-	body, err := zoho.Request(upsertServices, "Services", cfg)
+	body, err := zoho.Request(upsertServices, "Services")
 	if err != nil {
 		return err
 	}
@@ -262,9 +244,9 @@ func ConvertServices(accountsList AccountsList, m map[string]string) ZohoService
 }
 
 // DecodeServices decodes service data from HostBill JSON
-func DecodeServices(totalPages int, cfg *config.Config) (AccountsList, error) {
+func DecodeServices(totalPages int) (AccountsList, error) {
 	accountsList := AccountsList{}
-	body, err := hostbill.Request("getAccounts", totalPages, "0", cfg)
+	body, err := hostbill.Request("getAccounts", totalPages, "0")
 	if err != nil {
 		return accountsList, err
 	}
@@ -276,16 +258,16 @@ func DecodeServices(totalPages int, cfg *config.Config) (AccountsList, error) {
 }
 
 // EncodeClients encodes accounts into the Zoho API JSON format
-func EncodeClients(zohoAccounts ZohoAccounts, cfg *config.Config) ([]byte, error) {
+func EncodeClients(zohoAccounts ZohoAccounts) ([]byte, error) {
 	upsertAccounts, err := json.Marshal(zohoAccounts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to encode accounts %+v", zohoAccounts)
 	}
-	err = zoho.RefreshAccessToken(cfg)
+	err = zoho.RefreshAccessToken()
 	if err != nil {
 		return nil, err
 	}
-	body, err := zoho.Request(upsertAccounts, "Accounts", cfg)
+	body, err := zoho.Request(upsertAccounts, "Accounts")
 	if err != nil {
 		return nil, err
 	}
@@ -298,12 +280,12 @@ func EncodeClients(zohoAccounts ZohoAccounts, cfg *config.Config) ([]byte, error
 }
 
 // ConvertClients converts client data from the HostBill to the Zoho account format
-func ConvertClients(clientsList ClientsList, cfg *config.Config) (ZohoAccounts, error) {
+func ConvertClients(clientsList ClientsList) (ZohoAccounts, error) {
 	zohoAccounts := ZohoAccounts{
 		DuplicateCheckFields: []string{"Account_Number"},
 	}
 	for _, v := range clientsList.Clients {
-		body, err := hostbill.Request("getClientDetails", 0, v.ID, cfg)
+		body, err := hostbill.Request("getClientDetails", 0, v.ID)
 		if err != nil {
 			return zohoAccounts, err
 		}
@@ -332,9 +314,9 @@ func ConvertClients(clientsList ClientsList, cfg *config.Config) (ZohoAccounts, 
 }
 
 // DecodeClients decodes client data from HostBill JSON
-func DecodeClients(totalPages int, cfg *config.Config) (ClientsList, error) {
+func DecodeClients(totalPages int) (ClientsList, error) {
 	clientsList := ClientsList{}
-	body, err := hostbill.Request("getClients", totalPages, "0", cfg)
+	body, err := hostbill.Request("getClients", totalPages, "0")
 	if err != nil {
 		return clientsList, err
 	}
@@ -349,7 +331,9 @@ func DecodeClients(totalPages int, cfg *config.Config) (ClientsList, error) {
 func CreateIdMap(body []byte, m map[string]string, clientsList ClientsList) {
 	zohoResponse := ZohoResponse{}
 	err := json.Unmarshal(body, &zohoResponse)
-	PanicError(err)
+	if err != nil {
+		panic(err)
+	}
 	i := 0
 	for _, x := range zohoResponse.Data {
 		m[clientsList.Clients[i].ID] = x.Details.ID

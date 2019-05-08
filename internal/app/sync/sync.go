@@ -2,44 +2,31 @@ package sync
 
 import (
 	"github.com/bugsnag/bugsnag-go"
-	"github.com/olebedev/config"
-	"io/ioutil"
+	"sync/internal/pkg/config"
 	"sync/internal/pkg/sync"
 )
-
-// cfg contains the application's config
-var cfg *config.Config
 
 // Sync begins the sync process from HostBill to CRM
 func Sync() {
 	// Import our configuration data
-	readConfig()
+	config.ReadConfig()
 
 	// Setup our error notification platform
-	sync.ConfigureBugsnag(cfg)
+	config.ConfigureBugsnag()
 
 	// Sync accounts and get a map of HostBill IDs to Zoho IDs
-	m := accounts(cfg)
+	m := accounts()
 
 	// Sync services and invoices
-	go services(m, cfg)
-	invoices(m, cfg)
-}
-
-// readConfig reads the config file and instantiates the config object
-func readConfig() {
-	file, err := ioutil.ReadFile("configs/config.yml")
-	sync.PanicError(err)
-	yamlString := string(file)
-	cfg, err = config.ParseYaml(yamlString)
-	sync.PanicError(err)
+	go services(m)
+	invoices(m)
 }
 
 // invoices syncs all invoices from HostBill to CRM
-func invoices(m map[string]string, cfg *config.Config) {
+func invoices(m map[string]string) {
 	totalPages := 0
 	for {
-		invoicesList, err := sync.DecodeInvoices(totalPages, cfg)
+		invoicesList, err := sync.DecodeInvoices(totalPages)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
@@ -51,7 +38,7 @@ func invoices(m map[string]string, cfg *config.Config) {
 			totalPages++
 			continue
 		}
-		err = sync.EncodeInvoices(zohoInvoices, cfg)
+		err = sync.EncodeInvoices(zohoInvoices)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
@@ -65,17 +52,17 @@ func invoices(m map[string]string, cfg *config.Config) {
 }
 
 // services syncs all services from HostBill to CRM
-func services(m map[string]string, cfg *config.Config) {
+func services(m map[string]string) {
 	totalPages := 0
 	for {
-		accountsList, err := sync.DecodeServices(totalPages, cfg)
+		accountsList, err := sync.DecodeServices(totalPages)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
 			continue
 		}
 		zohoServices := sync.ConvertServices(accountsList, m)
-		err = sync.EncodeServices(zohoServices, cfg)
+		err = sync.EncodeServices(zohoServices)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
@@ -89,23 +76,23 @@ func services(m map[string]string, cfg *config.Config) {
 }
 
 // accounts syncs all accounts from HostBill to CRM
-func accounts(cfg *config.Config) map[string]string {
+func accounts() map[string]string {
 	totalPages := 0
 	m := make(map[string]string)
 	for {
-		clientsList, err := sync.DecodeClients(totalPages, cfg)
+		clientsList, err := sync.DecodeClients(totalPages)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
 			continue
 		}
-		zohoAccounts, err := sync.ConvertClients(clientsList, cfg)
+		zohoAccounts, err := sync.ConvertClients(clientsList)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
 			continue
 		}
-		body, err := sync.EncodeClients(zohoAccounts, cfg)
+		body, err := sync.EncodeClients(zohoAccounts)
 		if err != nil {
 			_ = bugsnag.Notify(err)
 			totalPages++
